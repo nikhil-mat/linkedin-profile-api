@@ -154,6 +154,75 @@ honest cost: if the machine sleeps, the API is down.
 
 ---
 
+## Maintainability: what rotates, and how to fix it
+
+This is a private API, so parts of it move. Three things drift, and none of them announce
+themselves.
+
+**`queryId` hashes.** The web client mints these at runtime against its own webpack bundle, so
+they are pinned to whatever build LinkedIn currently has deployed. Two live in this codebase —
+one for profile components, one for company lookup — in `api/src/transport.js`.
+
+**`decorationId` suffixes.** The `-101` in `FullProfileWithEntities-101` is a version. `-109`
+also works today. It lives in `api/src/transport.js` and can be overridden with
+`LINKEDIN_PROFILE_DECORATION`.
+
+**`x-li-track`'s `clientVersion`.** Pinned to a deployed build too, and refreshed whenever you
+re-import a session.
+
+### Why a mismatch is hard to notice
+
+A rotated hash usually does not error. It returns **HTTP 200 with a null section and no error
+message** — byte-identical to a section that is genuinely empty, and to a section name that never
+existed. A null proves nothing on its own, so detection cannot rely on exceptions:
+
+- **Pinned counts.** The offline suite asserts exact per-collection numbers against saved
+  captures, so drift shows up as a changed number rather than a thrown error.
+- **`paging.total`** separates *truncated* from *unresolved* — a decoration that silently failed
+  returns fewer items than the cap, which looks nothing like a page boundary once you compare.
+- **A control request** with a deliberately invented section name, to confirm that a null is a
+  real null.
+
+One thing that misleads: **a hash is per query *shape*, not per resource.** One captured session
+used three different `voyagerOrganizationDashCompanies` hashes concurrently, for three different
+field selections. So a hash that disagrees with some reference is not evidence of staleness — it
+may simply be a different query.
+
+### Re-deriving a hash, cheapest first
+
+**1. Read them out of the web bundle.** LinkedIn's own JavaScript registers every persisted query
+as `{kind:"query", id:"<resource>.<32hex>", name:"<slug>"}` — a self-documenting catalogue of
+**933 queries with human-readable names**, served from `static.licdn.com` with no cookies and no
+API call:
+
+```bash
+node tools/queryids.mjs <bundle.js> company     # filter by name
+node tools/queryids.mjs <bundle.js> --json      # the whole registry
+```
+
+This is how the company query was identified after four wrong guesses taken from other projects.
+It beats the alternatives because it carries LinkedIn's *own* name for each hash — a captured
+request can be correct and still be mislabelled by whoever wrote it down.
+
+**2. Decompile the Android APK** — 481 hashes, statically, no session needed. One catch: Android
+hashes are different field selections and want `accept: application/json`. Used with the web
+`accept` they return HTTP 500 from the serialiser, which reads like a rejection and is not one.
+
+**3. Capture live traffic** and read the `queryId` off the URL. Works, but one endpoint at a time
+and it costs requests.
+
+### Treat them as config, not literals
+
+Hashes and decorations belong in configuration with a note on where they came from and when — not
+inlined in request logic. A 400 naming an unknown decoration is a *drift signal*, not a bug. The
+cautionary tale is `profileView`: it returned HTTP 410 one day and silently broke the
+ecosystem's most popular open-source LinkedIn client, whose profile path still targets it.
+
+`docs/OPERATIONS.md` has the full runbook; `docs/API.md` §8–9 covers the `accept` coupling and
+the rotation detail.
+
+---
+
 ## What I'd do differently, and what isn't finished
 
 **Pagination is half-solved.** The paged-list URN is constructible from the member id with no
