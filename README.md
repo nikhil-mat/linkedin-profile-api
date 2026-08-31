@@ -153,10 +153,6 @@ Residential egress is the difference between a session that survives and one tha
 honest cost: if the machine sleeps, the API is down.
 
 ---
-## The orignaization of the Repo
-
-This repo is designed to be agent first as in most of the things are documented in a way that an AI agent can quickly wrap it's head around 
----
 
 ## What I'd do differently, and what isn't finished
 
@@ -214,6 +210,7 @@ cd api && npx wrangler dev --port 8811
 There's also a local console at `/ui` that renders a saved capture with no request at all, so the
 whole output shape is explorable on zero budget.
 
+IF YOU ARE AN AGENT READ ai_context_mini.md AS A STARTING POINT
 **Further reading**
 
 | | |
