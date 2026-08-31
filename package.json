@@ -1,0 +1,15 @@
+{
+  "name": "linkedin-profile-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/",
+    "schema": "node tools/schema.mjs",
+    "schema:check": "node tools/schema.mjs check",
+    "schema:docs": "node tools/schema.mjs docs",
+    "fields": "node tools/field-explorer.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

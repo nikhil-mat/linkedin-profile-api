@@ -1,0 +1,33 @@
+# Credentials — never commit
+.env
+.env.*
+!.env.example
+.dev.vars
+api/.dev.vars
+
+# Personal data: saved upstream responses are real people's profiles
+captures/
+
+# Reference repos: 8 upstream projects, cloned separately (27M)
+refs/
+
+# Saved LinkedIn JS bundles used for queryId extraction (24M)
+7se2kg6ssvregv7hzrujkdekq*
+*.bundle.js
+
+# Build artefacts
+node_modules/
+.wrangler/
+.DS_Store
+
+# Subagent scratch — evaluated separately, not part of the deliverable
+rebuild/
+
+# Ground-truth profile dumps: real people's data, same policy as captures/
+*_linkedin.json
+
+# HAR captures contain full cookie jars and auth headers -- never commit.
+*.har
+
+# embeds real profile data from captures/ — never commit or publish
+field-explorer.html

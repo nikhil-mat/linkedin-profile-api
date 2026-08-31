@@ -1,0 +1,7 @@
+name = "egress-test"
+main = "index.js"
+compatibility_date = "2026-08-01"
+
+[vars]
+# Set RELAY_URL to your Tailscale Funnel URL, e.g. https://box.tail1234.ts.net
+RELAY_URL = ""

@@ -1,0 +1,33 @@
+name = "linkedin-profile-api"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Inbound protection. Native binding — no KV round-trip, counters cached in-colo.
+[[ratelimits]]
+name = "API_RATE_LIMITER"
+namespace_id = "2001"
+simple = { limit = 30, period = 60 }
+
+# Outbound protection. A Durable Object because it is single-threaded and strongly consistent:
+# KV's eventual consistency would let concurrent requests all fire at once.
+[[durable_objects.bindings]]
+name = "UPSTREAM_LIMITER"
+class_name = "UpstreamLimiter"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["UpstreamLimiter"]
+
+[vars]
+# Leave empty for direct egress. Set to your relay URL (docs/11-EGRESS-RELAY.md) for
+# residential egress — required for authenticated reads.
+RELAY_URL = ""
+# REQUIRED, and there is deliberately no default. It must be the exact UA of the browser that
+# minted li_at -- captures from two different accounts on 2026-08-31 disagreed on OS, browser
+# version, GREASE brand and accept-language, so it cannot be guessed. Set it per session via
+# api/.dev.vars, or import a capture with: node tools/session-import.mjs <curl-file>
+LINKEDIN_USER_AGENT = ""
+# Hard stop. Any truthy value makes the transport refuse to contact LinkedIn at all.
+# Armed in api/.dev.vars for local work; leave unset here so deploys behave normally.
+# UPSTREAM_DISABLED = "true"
