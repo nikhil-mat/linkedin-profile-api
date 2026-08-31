@@ -125,6 +125,94 @@ the documentation cannot drift from the code.
 
 ---
 
+## API documentation
+
+| endpoint | upstream calls | returns |
+|---|---|---|
+| `GET /profile?url=…` | **1** | the profile |
+| `GET /profile?url=…&enrich=…` | 1 + one per name | adds opt-in sections |
+| `GET /schema` | 0 | every declared field, its type and source path |
+| `GET /budget` | 0 | requests spent today, the cap, any cooldown |
+| `GET /health` | 0 | liveness and egress mode |
+| `GET /ui` | 0 | a browsable console |
+
+**Parameters**
+
+| | |
+|---|---|
+| `url` *or* `slug` | a profile URL, a bare slug, or an `ACoAA…` member id. A full URN returns 400 |
+| `enrich` | comma-separated: `social`, `counts`, `company`, `interests`, `endorsements`. Each costs one extra upstream request and is never applied implicitly |
+
+No request headers are required — the server uses its own bound session. Sending `x-li-at` and
+`x-li-jsessionid` overrides it and spends your account instead.
+
+### Response
+
+```jsonc
+{ "ok": true,
+  "profile": {
+    "name": "…", "headline": "…", "location": "…", "industry": "…",
+    "experience": [ { "title": "Principal Scientist",
+                      "company": "PTC Therapeutics, Inc.",
+                      "companySlug": "ptc-therapeutics",
+                      "companyIndustry": "Biotechnology",
+                      "employmentType": "Full-time",
+                      "dates": { "start": "9/2023", "end": "5/2024",
+                                 "current": false, "text": "Sep 2023 - May 2024" },
+                      "location": "New Jersey, United States" } ],
+    "education": [ … ], "publications": [ … ], "skills": [ … ]
+  },
+  "meta": {
+    "state": "partial",
+    "includedCount": 170,
+    "upstreamRequests": 1,
+    "credentialSource": "binding",
+    "collections": {
+      "experience": { "total": 12, "returned": 10, "cap": 10, "state": "truncated" },
+      "skills":     { "total": 36, "returned": 20, "cap": 20, "state": "truncated" },
+      "education":  { "total": 8,  "returned": 8,  "cap": 20, "state": "complete"  }
+    },
+    "truncated": ["experience (10/12)", "skills (20/36)"],
+    "unresolved": []
+  } }
+```
+
+`meta.collections` is the part that makes the output trustworthy. `state` is `complete` when
+`total === returned`; `truncated` when more exist and the cap was hit, so paginating would get
+them; and `unresolved` when fewer than the cap arrived but `total` says more exist — meaning the
+decoration failed rather than the person having little. Those two look identical in the payload
+and mean opposite things.
+
+### Errors
+
+There is never an empty success. A 302, 410 or 999 handed to a parser produces a plausible empty
+profile, so failures return `ok: false` with a named cause and a hint. **Nothing here is
+retryable** — where LinkedIn is signalling load, retrying is what escalates it.
+
+| error | HTTP | means |
+|---|---|---|
+| `bad_request` | 400 | the url or slug did not parse |
+| `no_user_agent` | 400 | no UA configured, and there is deliberately no default |
+| `no_credentials` | 401 | the server has no session bound |
+| `SESSION_INVALID` | 401 | 3xx to the login wall, or a self-redirect — cookies stale, or the pair is mismatched |
+| `SESSION_KILLED` | 401 | `set-cookie: li_at=delete me` — the session is dead, re-login |
+| `CSRF_REJECTED` | 401 | 403 upstream: the csrf header, or a restricted profile |
+| `FORBIDDEN` | 403 | this profile may be restricted; five in a row means a session problem |
+| `NOT_FOUND` | 404 | no such public identifier |
+| `rate_limit_exceeded` | 429 | **our** inbound limiter, not LinkedIn's |
+| `RATE_LIMITED` | 429 | LinkedIn throttled us; a cooldown is now in force |
+| `REQUEST_DENIED` | 429 | HTTP 999, a network-layer block — stop for hours |
+| `upstream_budget` | 429 | daily cap reached, or a cooldown is active |
+| `upstream_disabled` | 503 | the kill switch is armed |
+| `SCHEMA_DRIFT` | 502 | the decoration id likely rotated — re-capture it |
+| `GONE` | 502 | the endpoint was retired |
+| `PARSE_FAILED` · `transport_error` | 502 | the response shape changed, or the fetch threw |
+
+Enrichments never fail the call. If one is skipped — a cooldown, a missing company slug — it is
+recorded in `meta.enrichmentSkipped` with the reason and the profile still returns.
+
+---
+
 ## How it's built
 
 A Cloudflare Worker (Hono), run locally behind a tunnel. Roughly 1,500 lines of source plus 103
@@ -289,3 +377,27 @@ IF YOU ARE AN AGENT READ ai_context_mini.md AS A STARTING POINT
 | [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | what it costs, how it fails, and five real incidents with their causes |
 | [`docs/BUILD.md`](docs/BUILD.md) | architecture, the request/response contract, and every bug with what caught it |
 | [`docs/TESTING.md`](docs/TESTING.md) | the fixtures and what each one exercises |
+
+---
+
+## Repo map
+
+```
+api/src/       the Worker — routes, classify, transport, the Durable Object limiter
+src/           parsers and transport, shared with the CLI and the tests
+  schema.mjs     the single field declaration — add a field here and nowhere else
+  profile-graph.mjs   the graph walk
+  session.mjs    header construction, cookie pruning, the kill switch
+tools/         schema (check + generate docs), session-import, field-explorer, queryids
+tests/         103 offline tests
+docs/          the detail this README points at
+captures/      saved responses — gitignored, real people's data
+```
+
+| doc | what is in it |
+|---|---|
+| [docs/SCHEMA.md](docs/SCHEMA.md) | every field, its type and its source path — generated from `src/schema.mjs` |
+| [docs/API.md](docs/API.md) | the endpoint in full: auth, parsing traps, pagination, hash rotation |
+| [docs/OPERATIONS.md](docs/OPERATIONS.md) | what it costs, how it fails, and five real incidents with causes |
+| [docs/BUILD.md](docs/BUILD.md) | architecture, the request/response contract, every bug and what caught it |
+| [docs/TESTING.md](docs/TESTING.md) | the fixtures and what each one exercises |
