@@ -321,11 +321,10 @@ the two roles missing from a truncated page. The skills variant uses a different
 returns HTTP 500; the error names a serialiser problem rather than a bad URN, so it's likely one
 header away. Untested.
 
-**Session longevity has no fix here.** A browser stays logged in because it absorbs `Set-Cookie`
-on every navigation. I built that harvesting and then measured that a Voyager XHR returns no
-`Set-Cookie` at all — so there is nothing to absorb, and re-affirmation appears to be
-navigation-bound. What survives is detection of `li_at=delete me`, the one unambiguous signal
-that a session is dead.
+**Session refresh is not implemented.** LinkedIn rotates `li_at` on page loads, never on Voyager
+XHRs (58 captured API responses, zero `Set-Cookie`). The harvester in `src/session.mjs` works;
+it just needs a periodic page GET on the same jar to feed it. Not done. `li_at=delete me`
+detection is.
 
 **Header fidelity has a low ceiling.** Outgoing requests match the real client exactly — 17 of
 the 17 headers present on 100% of 46 captured calls, no extras. But `/voyager/api/` sits behind
