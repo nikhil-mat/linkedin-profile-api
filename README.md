@@ -3,11 +3,13 @@
 Give it a LinkedIn profile URL, get structured JSON back. One HTTP request to LinkedIn per
 profile, no browser, no official API.
 
+**Live:** `https://fluff.tail71ac66.ts.net`
+
 ```bash
-curl "https://<host>/profile?url=https://www.linkedin.com/in/<slug>/"
+curl "https://fluff.tail71ac66.ts.net/profile?url=https://www.linkedin.com/in/<slug>/"
 ```
 
-No credentials needed — the service holds its own session.
+No credentials needed — the service holds its own session. Health: [`/health`](https://fluff.tail71ac66.ts.net/health), console: [`/ui`](https://fluff.tail71ac66.ts.net/ui).
 
 ---
 
