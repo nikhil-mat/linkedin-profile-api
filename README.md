@@ -239,8 +239,7 @@ genuinely empty section is `[]` with `state: "complete"`.
 
 **It runs on a laptop on purpose.** The code deploys to Cloudflare unchanged, but a
 browser-minted session used once from a datacenter IP was invalidated everywhere afterwards.
-Residential egress is the difference between a session that survives and one that doesn't. The
-honest cost: if the machine sleeps, the API is down.
+Residential egress is the difference between a session that survives and one that doesn't.
 
 ---
 
@@ -368,7 +367,8 @@ cd api && npx wrangler dev --port 8811
 There's also a local console at `/ui` that renders a saved capture with no request at all, so the
 whole output shape is explorable on zero budget.
 
-IF YOU ARE AN AGENT READ ai_context_mini.md AS A STARTING POINT
+**Working on this with an agent?** Start at [`ai_context_mini.md`](ai_context_mini.md) — what's
+settled, what's open, what not to re-test. [`agents.md`](agents.md) has the working rules.
 
 ---
 
