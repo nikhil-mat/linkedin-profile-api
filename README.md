@@ -369,15 +369,6 @@ There's also a local console at `/ui` that renders a saved capture with no reque
 whole output shape is explorable on zero budget.
 
 IF YOU ARE AN AGENT READ ai_context_mini.md AS A STARTING POINT
-**Further reading**
-
-| | |
-|---|---|
-| [`docs/SCHEMA.md`](docs/SCHEMA.md) | every field, its type and its source path in the payload — generated from `src/schema.mjs` |
-| [`docs/API.md`](docs/API.md) | the endpoint in full: auth, parsing traps, pagination, hash rotation |
-| [`docs/OPERATIONS.md`](docs/OPERATIONS.md) | what it costs, how it fails, and five real incidents with their causes |
-| [`docs/BUILD.md`](docs/BUILD.md) | architecture, the request/response contract, and every bug with what caught it |
-| [`docs/TESTING.md`](docs/TESTING.md) | the fixtures and what each one exercises |
 
 ---
 
